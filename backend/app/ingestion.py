@@ -83,12 +83,36 @@ def ingest_file(client: genai.Client, store_name: str, file_path: Path) -> bool:
             flush=True,
         )
 
-        # Upload file - API auto-detects MIME type from file extension
-        op = client.file_search_stores.upload_to_file_search_store(
+        # Map file extensions to MIME types
+        MIME_TYPE_MAP = {
+            ".pdf": "application/pdf",
+            ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            ".txt": "text/plain",
+            ".md": "text/markdown",
+        }
+        file_ext = file_path.suffix.lower()
+        mime_type = MIME_TYPE_MAP.get(file_ext, "text/plain")
+
+        # Step 1: Upload to Files API with MIME type in config
+        uploaded_file = client.files.upload(
+            file=str(file_path.absolute()),
+            config={"mime_type": mime_type}
+        )
+        
+        # Wait for file to be processed
+        while uploaded_file.state.name == "PROCESSING":
+            time.sleep(2)
+            uploaded_file = client.files.get(uploaded_file.name)
+        
+        if uploaded_file.state.name != "ACTIVE":
+            print(f"✗ Error: File processing failed: {uploaded_file.state.name}")
+            return False
+
+        # Step 2: Import file into File Search store
+        op = client.file_search_stores.import_file(
             file_search_store_name=store_name,
-            file=str(file_path),
+            file_name=uploaded_file.name,
             config={
-                "display_name": file_path.name,
                 "chunking_config": {
                     "white_space_config": {
                         "max_tokens_per_chunk": CHUNK_SIZE_TOKENS,
