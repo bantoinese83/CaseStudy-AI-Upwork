@@ -20,9 +20,18 @@ export function Chat() {
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">CaseStudy AI</h1>
-        <p className="text-gray-600">
-          Ask about past projects, features, or outcomes. Get proposal-ready answers with citations.
+        <div className="flex items-center justify-center gap-4 mb-4">
+          <img
+            src="/logo.svg"
+            alt="CaseStudy AI Logo"
+            className="w-16 h-16 drop-shadow-[0_0_8px_rgba(165,243,252,0.3)]"
+          />
+          <h1 className="text-3xl font-bold text-white tracking-tight">
+            CaseStudy <span className="text-ice">AI</span>
+          </h1>
+        </div>
+        <p className="text-zinc-400 font-mono text-sm">
+          {'>'} Query case studies. Extract insights. Generate proposals.
         </p>
       </div>
 

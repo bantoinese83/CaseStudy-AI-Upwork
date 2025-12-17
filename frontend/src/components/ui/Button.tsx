@@ -9,16 +9,20 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses = {
-  primary: 'bg-blue-600 hover:bg-blue-700 text-white',
-  secondary: 'bg-gray-200 hover:bg-gray-300 text-gray-800',
-  success: 'bg-green-600 hover:bg-green-700 text-white',
-  danger: 'bg-red-600 hover:bg-red-700 text-white',
+  primary:
+    'bg-void-surface border border-ice/30 text-ice hover:border-ice hover:shadow-[0_0_12px_rgba(165,243,252,0.2)] font-mono',
+  secondary:
+    'bg-void-surface-light border border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-300 font-mono',
+  success:
+    'bg-void-surface border border-ice/30 text-ice hover:border-ice hover:shadow-[0_0_12px_rgba(165,243,252,0.2)] font-mono',
+  danger:
+    'bg-void-surface border border-red-500/30 text-red-400 hover:border-red-500 hover:shadow-[0_0_12px_rgba(239,68,68,0.2)] font-mono',
 };
 
 const sizeClasses = {
-  sm: 'px-3 py-1.5 text-sm',
-  md: 'px-4 py-2',
-  lg: 'px-6 py-3 text-lg',
+  sm: 'px-3 py-1.5 text-xs',
+  md: 'px-4 py-2 text-sm',
+  lg: 'px-6 py-3 text-base',
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -35,7 +39,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const baseClasses =
-      'rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2';
+      'rounded-sm font-medium transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none focus:ring-1 focus:ring-ice/50 uppercase tracking-wider';
     const variantClass = variantClasses[variant];
     const sizeClass = sizeClasses[size];
 
@@ -46,7 +50,15 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         className={`${baseClasses} ${variantClass} ${sizeClass} ${className}`.trim()}
         {...props}
       >
-        {isLoading ? 'Loading...' : children}
+        {isLoading ? (
+          <span className="flex items-center gap-2">
+            <span className="animate-pulse">[</span>
+            <span className="font-mono">LOADING</span>
+            <span className="animate-pulse">]</span>
+          </span>
+        ) : (
+          children
+        )}
       </button>
     );
   }

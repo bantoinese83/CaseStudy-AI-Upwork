@@ -59,17 +59,17 @@ export function QueryForm({ onSubmit, isLoading = false }: QueryFormProps) {
       </form>
 
       {!isLoading && (
-        <div className="text-sm text-gray-500">
-          <p className="mb-2">Try these examples:</p>
+        <div className="text-xs text-zinc-500 font-mono">
+          <p className="mb-2 text-zinc-600">[ EXAMPLES ]</p>
           <div className="flex flex-wrap gap-2">
             {QUERY_EXAMPLES.map((example, index) => (
               <button
                 key={index}
                 type="button"
                 onClick={() => handleExampleClick(example)}
-                className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                className="px-3 py-1.5 text-xs bg-void-surface border border-zinc-800 text-zinc-400 hover:border-ice/30 hover:text-ice rounded-sm transition-all duration-200 font-mono"
               >
-                {example}
+                {String(index + 1).padStart(2, '0')} {example}
               </button>
             ))}
           </div>

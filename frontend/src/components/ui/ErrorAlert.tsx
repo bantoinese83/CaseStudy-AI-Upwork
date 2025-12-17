@@ -6,17 +6,27 @@ interface ErrorAlertProps {
   title?: string;
 }
 
-export function ErrorAlert({ message, onDismiss, title = 'Error' }: ErrorAlertProps) {
+export function ErrorAlert({ message, onDismiss, title = 'ERROR' }: ErrorAlertProps) {
   return (
-    <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700" role="alert">
-      <div className="flex justify-between items-start">
-        <div>
-          <strong>{title}:</strong> {message}
+    <div
+      className="p-4 bg-void-surface border border-red-500/30 rounded-sm text-red-400 font-mono"
+      role="alert"
+    >
+      <div className="flex justify-between items-start gap-4">
+        <div className="flex items-start gap-2">
+          <span className="text-xs text-red-500/70 mt-0.5">[</span>
+          <div>
+            <div className="text-xs text-red-500/70 mb-1">{title}</div>
+            <div className="text-sm text-red-400">
+              {'>'} {message}
+            </div>
+          </div>
+          <span className="text-xs text-red-500/70 mt-0.5">]</span>
         </div>
         {onDismiss && (
           <button
             onClick={onDismiss}
-            className="ml-4 text-red-700 hover:text-red-900"
+            className="text-red-400 hover:text-red-300 transition-colors text-lg leading-none"
             aria-label="Dismiss error"
           >
             ×

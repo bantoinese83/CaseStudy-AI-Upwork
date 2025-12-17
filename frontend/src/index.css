@@ -2,15 +2,70 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  margin: 0;
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell',
-    'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@layer base {
+  body {
+    @apply bg-void text-zinc-400 font-sans;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  code {
+    @apply font-mono;
+  }
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+@layer utilities {
+  .text-ice {
+    color: #a5f3fc;
+  }
+
+  .text-ice-light {
+    color: #67e8f9;
+  }
+
+  .bg-void {
+    background-color: #030303;
+  }
+
+  .bg-void-surface {
+    background-color: #111111;
+  }
+
+  .bg-void-surface-light {
+    background-color: #141414;
+  }
+
+  .border-void {
+    border-color: #27272a;
+  }
+}
+
+/* Cyber-minimalist prose styling */
+.prose-invert h1,
+.prose-invert h2,
+.prose-invert h3,
+.prose-invert h4 {
+  @apply text-white font-sans tracking-tight;
+}
+
+.prose-invert p {
+  @apply text-zinc-300 leading-relaxed;
+}
+
+.prose-invert strong {
+  @apply text-ice font-semibold;
+}
+
+.prose-invert ul,
+.prose-invert ol {
+  @apply text-zinc-300;
+}
+
+.prose-invert li {
+  @apply text-zinc-300;
+}
+
+.prose-invert a {
+  @apply text-ice hover:text-ice-light transition-colors;
 }
