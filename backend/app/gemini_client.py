@@ -1,6 +1,7 @@
 """Gemini client wrapper for File Search operations."""
 import logging
 import os
+from pathlib import Path
 from typing import Any, Optional
 
 from google import genai
@@ -160,6 +161,77 @@ class GeminiClient:
         except Exception as e:
             raise RuntimeError(f"Gemini query failed: {e}") from e
     
+    def upload_file(
+        self,
+        file_path: str | Path,
+        store_display_name: str = DEFAULT_STORE_NAME,
+    ) -> tuple[bool, str]:
+        """
+        Upload a file to the File Search store.
+
+        Args:
+            file_path: Path to the file to upload
+            store_display_name: Display name of the store
+
+        Returns:
+            Tuple of (success: bool, message: str)
+        """
+        file_path_obj = Path(file_path)
+        if not file_path_obj.exists():
+            return False, f"File not found: {file_path}"
+
+        # Check file size (100MB limit)
+        MB_TO_BYTES = 1024 * 1024
+        MAX_FILE_SIZE_MB = 100
+        file_size_mb = file_path_obj.stat().st_size / MB_TO_BYTES
+
+        if file_size_mb > MAX_FILE_SIZE_MB:
+            return False, f"File exceeds {MAX_FILE_SIZE_MB}MB limit ({file_size_mb:.1f}MB)"
+
+        # Check file extension
+        SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".txt", ".md"}
+        file_ext = file_path_obj.suffix.lower()
+        if file_ext not in SUPPORTED_EXTENSIONS:
+            return (
+                False,
+                f"Unsupported file type: {file_ext}. Supported: {', '.join(SUPPORTED_EXTENSIONS)}",
+            )
+
+        try:
+            store_name = self.get_store_name(store_display_name)
+
+            # Use upload_to_file_search_store directly (same as ingestion script)
+            # The API should auto-detect MIME type from file extension
+            import time
+
+            op = self.client.file_search_stores.upload_to_file_search_store(
+                file_search_store_name=store_name,
+                file=str(file_path_obj),
+                config={
+                    "display_name": file_path_obj.name,
+                    "chunking_config": {
+                        "white_space_config": {
+                            "max_tokens_per_chunk": 300,
+                            "max_overlap_tokens": 30,
+                        }
+                    },
+                },
+            )
+
+            # Poll for completion
+            POLL_INTERVAL_SECONDS = 5
+            while not op.done:
+                time.sleep(POLL_INTERVAL_SECONDS)
+                op = self.client.operations.get(op)
+
+            if hasattr(op, "error") and op.error:
+                return False, f"Upload failed: {op.error}"
+
+            return True, f"File uploaded successfully: {file_path_obj.name}"
+
+        except Exception as e:
+            return False, f"Upload failed: {str(e)}"
+
     def get_store_info(
         self, store_display_name: str = DEFAULT_STORE_NAME
     ) -> dict[str, str | int | None]:

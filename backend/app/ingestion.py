@@ -83,6 +83,7 @@ def ingest_file(client: genai.Client, store_name: str, file_path: Path) -> bool:
             flush=True,
         )
 
+        # Upload file - API auto-detects MIME type from file extension
         op = client.file_search_stores.upload_to_file_search_store(
             file_search_store_name=store_name,
             file=str(file_path),

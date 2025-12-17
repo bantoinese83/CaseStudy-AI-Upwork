@@ -27,3 +27,19 @@ class HealthResponse(BaseModel):
     store_name: Optional[str] = None
     file_count: Optional[int] = None
 
+
+class UploadResponse(BaseModel):
+    """File upload response."""
+    success: bool
+    filename: str
+    message: str
+    file_size_mb: Optional[float] = None
+
+
+class UploadProgressResponse(BaseModel):
+    """Upload progress response."""
+    filename: str
+    status: str  # "uploading", "processing", "complete", "error"
+    progress: Optional[float] = None
+    message: Optional[str] = None
+

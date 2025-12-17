@@ -7,7 +7,11 @@ export const API_BASE_URL =
 export const API_ENDPOINTS = {
   QUERY: '/api/query',
   HEALTH: '/health',
+  UPLOAD: '/api/upload',
 } as const;
+
+export const SUPPORTED_FILE_TYPES = ['.pdf', '.docx', '.txt', '.md'] as const;
+export const MAX_FILE_SIZE_MB = 100;
 
 export const QUERY_EXAMPLES = [
   'ecommerce platform with Shopify integration',

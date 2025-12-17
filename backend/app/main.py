@@ -2,15 +2,17 @@
 import logging
 import os
 import sys
+import tempfile
+from pathlib import Path
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from .citations import extract_citations
 from .gemini_client import DEFAULT_STORE_NAME, GeminiClient
-from .models import HealthResponse, QueryRequest, QueryResponse
+from .models import HealthResponse, QueryRequest, QueryResponse, UploadResponse
 from .prompts import SALES_SYSTEM_PROMPT
 
 # Load environment variables
@@ -41,8 +43,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins if os.getenv("ENV") != "development" else ["*"],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization"],
+    allow_methods=["GET", "POST", "OPTIONS", "PUT"],
+    allow_headers=["Content-Type", "Authorization", "Accept"],
     expose_headers=["*"],
 )
 
@@ -163,6 +165,100 @@ async def query_case_studies(req: QueryRequest):
         ) from e
 
 
+@app.post("/api/upload", response_model=UploadResponse)
+async def upload_file(file: UploadFile = File(...)):
+    """
+    Upload a case study document to the knowledge base.
+
+    Args:
+        file: The file to upload (PDF, DOCX, TXT, MD)
+
+    Returns:
+        Upload response with success status and message
+    """
+    if gemini_client is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Service unavailable: Gemini API key not configured",
+        )
+
+    # Validate file type
+    SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".txt", ".md"}
+    file_ext = Path(file.filename).suffix.lower() if file.filename else ""
+    if file_ext not in SUPPORTED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type: {file_ext}. Supported: {', '.join(SUPPORTED_EXTENSIONS)}",
+        )
+
+    # Check file size (100MB limit)
+    MAX_FILE_SIZE_MB = 100
+    MB_TO_BYTES = 1024 * 1024
+    content = await file.read()
+    file_size_mb = len(content) / MB_TO_BYTES
+
+    if file_size_mb > MAX_FILE_SIZE_MB:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File exceeds {MAX_FILE_SIZE_MB}MB limit ({file_size_mb:.1f}MB)",
+        )
+
+    # Save to temporary file and case-studies folder
+    case_studies_dir = Path("/app/case-studies")
+    case_studies_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Save to case-studies folder (local backup)
+    original_filename = file.filename or f"upload{file_ext}"
+    case_study_path = case_studies_dir / original_filename
+    
+    # Handle filename conflicts by adding a number suffix
+    counter = 1
+    while case_study_path.exists():
+        name_part = case_study_path.stem
+        case_study_path = case_studies_dir / f"{name_part}_{counter}{file_ext}"
+        counter += 1
+    
+    try:
+        # Save to case-studies folder
+        case_study_path.write_bytes(content)
+        logger.info(f"Saved file to case-studies folder: {case_study_path.name}")
+        
+        # Also save to temporary file for Gemini upload
+        with tempfile.NamedTemporaryFile(
+            delete=False, suffix=file_ext, prefix="upload_"
+        ) as tmp_file:
+            tmp_file.write(content)
+            tmp_path = tmp_file.name
+
+        try:
+            store_display_name = os.getenv("FILE_SEARCH_STORE_NAME", DEFAULT_STORE_NAME)
+            success, message = gemini_client.upload_file(tmp_path, store_display_name)
+
+            if success:
+                logger.info(f"File uploaded successfully: {file.filename}")
+                return UploadResponse(
+                    success=True,
+                    filename=case_study_path.name,
+                    message=message,
+                    file_size_mb=round(file_size_mb, 2),
+                )
+            else:
+                logger.error(f"File upload failed: {message}")
+                # Remove the saved file if upload failed
+                case_study_path.unlink(missing_ok=True)
+                raise HTTPException(status_code=500, detail=message)
+
+        finally:
+            # Clean up temporary file
+            Path(tmp_path).unlink(missing_ok=True)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Upload error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}") from e
+
+
 @app.get("/")
 async def root() -> dict[str, str | dict[str, str] | bool]:
     """Root endpoint with API information."""
@@ -174,6 +270,7 @@ async def root() -> dict[str, str | dict[str, str] | bool]:
         "endpoints": {
             "health": "/health",
             "query": "/api/query",
+            "upload": "/api/upload",
             "docs": "/docs",
         },
     }

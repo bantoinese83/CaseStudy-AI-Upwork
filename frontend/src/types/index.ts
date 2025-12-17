@@ -31,3 +31,10 @@ export interface UseQueryReturn extends QueryState {
   execute: (question: string) => Promise<void>;
   reset: () => void;
 }
+
+export interface UploadResponse {
+  success: boolean;
+  filename: string;
+  message: string;
+  file_size_mb?: number | null;
+}

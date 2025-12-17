@@ -2,7 +2,7 @@
 
 import { ApiError, getErrorMessage } from '../utils/errors';
 import { API_BASE_URL, API_ENDPOINTS } from '../constants';
-import type { HealthResponse, QueryRequest, QueryResponse } from '../types';
+import type { HealthResponse, QueryRequest, QueryResponse, UploadResponse } from '../types';
 
 /**
  * Base fetch wrapper with error handling and timeout.
@@ -100,4 +100,39 @@ export async function checkHealth(): Promise<HealthResponse> {
   });
 
   return handleResponse<HealthResponse>(response);
+}
+
+/**
+ * Upload a file to the knowledge base.
+ */
+export async function uploadFile(file: File): Promise<UploadResponse> {
+  const url = `${API_BASE_URL}${API_ENDPOINTS.UPLOAD}`;
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes for large files
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+      signal: controller.signal,
+      // Don't set Content-Type header - browser will set it with boundary for multipart/form-data
+    });
+
+    clearTimeout(timeoutId);
+    return handleResponse<UploadResponse>(response);
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new ApiError(
+        'Upload timeout - file may be too large or connection is slow',
+        undefined,
+        error
+      );
+    }
+    throw new ApiError(getErrorMessage(error), undefined, error);
+  }
 }

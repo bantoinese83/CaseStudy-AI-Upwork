@@ -10,7 +10,7 @@ services:
       - FILE_SEARCH_STORE_NAME=${FILE_SEARCH_STORE_NAME:-case-study-store}
       - PYTHONUNBUFFERED=1
     volumes:
-      - ./case-studies:/app/case-studies:ro
+      - ./case-studies:/app/case-studies
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
