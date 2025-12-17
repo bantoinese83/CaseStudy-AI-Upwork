@@ -1,431 +1,345 @@
 # CaseStudy AI
 
-CaseStudy AI enables sales teams to query hundreds of case study documents via natural language, receiving proposal-ready bullet points with citations. Built on Google Gemini File Search for zero-maintenance RAG (chunking, embeddings, semantic search handled automatically).
+**An internal AI assistant for your sales team to quickly find and extract relevant case studies from your document library.**
 
-## Features
+Upload your case study documents (PDFs, Word docs, etc.) and instantly search them with natural language. Get proposal-ready answers with citations showing exactly which documents the information came from.
 
-- **Natural Language Queries**: Ask questions like "fintech SaaS with Stripe" and get relevant case studies
-- **Proposal-Ready Format**: Answers structured as "Relevant Projects / What We Did / Features / Outcomes"
-- **Inline Citations**: See exactly which document each bullet came from (filename + chunk/page)
-- **Copy to Clipboard**: One-click copy for pasting into proposals or slide decks
-- **Private & Secure**: Uses your Gemini API key, data stays private
-- **Zero-Maintenance RAG**: No vector DB setup, chunking, or embedding management needed
+---
 
-## Architecture
+## What It Does
 
-```
-┌─────────────────┐    ┌──────────────────┐    ┌──────────────────┐
-│   Case Studies  │───▶│ Gemini File      │───▶│ FastAPI Backend  │
-│   (PDF/DOCX)    │    │ Search Store     │    │  (Docker)        │
-└─────────┬───────┘    │ (Managed RAG)    │    └────────┬─────────┘
-          │            └──────────────────┘            │
-          │  ./ingest.sh                                 │
-          └─────────────────────────────────────────────┘
-                                                         │
-                                          ┌──────────────▼──────────────┐
-                                          │  React SPA (Vite)           │
-                                          │  Production: nginx (Docker)  │
-                                          │  Dev: Vite (localhost:5173) │
-                                          └──────────────────────────────┘
-```
+- **Upload Documents**: Import your case studies (PDF, DOCX, TXT, MD) into a searchable knowledge base
+- **Natural Language Search**: Ask questions like "fintech SaaS with Stripe integration" and get relevant examples
+- **Proposal-Ready Answers**: Responses formatted as "Relevant Projects / What We Did / Features / Outcomes"
+- **Citations Included**: See exactly which document each piece of information came from
+- **One-Click Copy**: Copy answers directly to paste into proposals and presentations
+- **Private & Secure**: All data stays private using your own API key
 
-**Deployment:**
-- **Backend**: FastAPI + Uvicorn (Docker container)
-- **Frontend**: Production build served by nginx (Docker container)
-- **Development**: Frontend can run locally with Vite for hot reload
+---
 
-## Quick Start
+## Quick Start (5 Minutes)
 
-### Prerequisites
+### Step 1: Prerequisites
 
-- Docker and Docker Compose
-- Gemini API key ([Get one here](https://ai.google.dev/))
+You need:
+- **Docker Desktop** installed and running ([Download here](https://www.docker.com/products/docker-desktop))
+- A **Google Gemini API key** ([Get one here](https://ai.google.dev/))
 
-### Setup (5 minutes)
+### Step 2: Setup
 
-**Option 1: Using the startup script (Recommended)**
+1. **Copy the environment file:**
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Add your API key:**
+   - Open `.env` in a text editor
+   - Add your Gemini API key:
+     ```
+     GEMINI_API_KEY=your_actual_api_key_here
+     ```
+
+3. **Start the application:**
+   ```bash
+   ./start.sh
+   ```
+   
+   This will:
+   - Check that Docker is running
+   - Build and start all services
+   - Wait for everything to be ready
+   - Show you the access URLs
+
+### Step 3: Add Your Case Studies
+
+1. **Place your documents** in the `case-studies/` folder:
+   - Supported formats: PDF, DOCX, TXT, MD
+   - Maximum file size: 100MB per file
+
+2. **Run the ingestion:**
+   ```bash
+   ./ingest.sh
+   ```
+   
+   This will upload and index all your documents. You'll see progress as each file is processed.
+
+### Step 4: Use It!
+
+1. **Open the web interface:** http://localhost:3000
+2. **Type your question** (e.g., "ecommerce platform with Shopify")
+3. **Get your answer** with citations
+4. **Click "Copy"** to paste into your proposal
+
+---
+
+## Common Commands
+
+| Command | What It Does |
+|---------|--------------|
+| `./start.sh` | Start the application |
+| `./stop.sh` | Stop the application |
+| `./check.sh` | Check if everything is running |
+| `./ingest.sh` | Upload/update your case studies |
+| `./dev.sh` | Start with live logs (for troubleshooting) |
+
+---
+
+## Adding New Case Studies
+
+When you have new documents to add:
+
+1. **Drop the files** into the `case-studies/` folder
+2. **Run ingestion again:**
+   ```bash
+   ./ingest.sh
+   ```
+
+The system will automatically add the new documents to your knowledge base.
+
+---
+
+## Troubleshooting
+
+### "Services won't start"
+
+**Check Docker is running:**
 ```bash
-# 1. Configure environment
-cp .env.example .env
-# Edit .env and add your GEMINI_API_KEY
-
-# 2. Start everything (validates prerequisites, builds, and starts services)
-./start.sh
+docker info
 ```
 
-**Option 2: Using Make commands**
+If this fails, make sure Docker Desktop is open and running.
+
+**View logs to see what's wrong:**
 ```bash
-# Configure environment
-cp .env.example .env
-# Edit .env and add your GEMINI_API_KEY
-
-# Start services
-make start
+docker compose logs
 ```
 
-**Option 3: Using Docker Compose directly**
+### "API key not configured" error
+
+1. Make sure `.env` file exists in the project root
+2. Check your API key is correct:
+   ```bash
+   grep GEMINI_API_KEY .env
+   ```
+3. Restart the services:
+   ```bash
+   ./stop.sh
+   ./start.sh
+   ```
+
+### "No results from queries"
+
+1. **Check if documents were ingested:**
+   ```bash
+   curl http://localhost:8000/health
+   ```
+   Look for `"file_count"` - it should show how many documents are indexed.
+
+2. **If file_count is 0**, run ingestion:
+   ```bash
+   ./ingest.sh
+   ```
+
+3. **Check ingestion logs** for errors:
+   ```bash
+   docker compose logs backend | grep -i error
+   ```
+
+### Frontend won't load
+
+1. **Check if backend is running:**
+   ```bash
+   ./check.sh
+   ```
+
+2. **Check backend health:**
+   ```bash
+   curl http://localhost:8000/health
+   ```
+
+3. **Restart everything:**
+   ```bash
+   ./stop.sh
+   ./start.sh
+   ```
+
+### Ingestion fails
+
+**Common issues:**
+- **File too large**: Maximum 100MB per file
+- **Unsupported format**: Use PDF, DOCX, TXT, or MD
+- **API key invalid**: Check your `.env` file
+
+**Check what went wrong:**
 ```bash
-# Configure environment
-cp .env.example .env
-# Edit .env and add your GEMINI_API_KEY
-
-# Start services
-docker compose up -d
+docker compose logs backend
 ```
 
-### Ingest Case Studies
+---
 
-After starting services, ingest your case studies:
+## Access Points
 
-```bash
-# Place your PDF/DOCX files in the case-studies/ folder first
-./ingest.sh
+Once running, you can access:
 
-# Or using Make
-make ingest
-
-# Or manually
-docker compose run backend python /app/ingestion.py --folder /app/case-studies
-```
-
-### Access the Application
-
-Once started, access:
-- **Frontend (Production)**: http://localhost:3000 (nginx-served production build)
-- **Frontend (Development)**: http://localhost:5173 (if running locally with `npm run dev`)
-- **Backend API**: http://localhost:8000
-- **API Docs**: http://localhost:8000/docs
+- **Web Interface**: http://localhost:3000
+- **API Documentation**: http://localhost:8000/docs
 - **Health Check**: http://localhost:8000/health
 
-### Check Status
+---
 
-```bash
-# Check service health
-./check.sh
+## How It Works
 
-# Or using Make
-make check
+1. **Documents** are uploaded to Google Gemini File Search (a managed RAG service)
+2. **Documents are automatically** chunked, indexed, and made searchable
+3. **When you ask a question**, the system:
+   - Searches your document library
+   - Finds relevant sections
+   - Formats the answer for sales use
+   - Shows citations for each piece of information
 
-# View logs
-make logs          # All services
-make logs-backend  # Backend only
-make logs-frontend # Frontend only
-```
+**No vector databases or complex setup needed** - Gemini File Search handles everything automatically.
 
-## Usage
+---
 
-### For Sales Reps
+## File Formats Supported
 
-1. Open http://localhost:3000
-2. Type your question (e.g., "ecommerce platform with Shopify integration")
-3. Get structured answer with citations
-4. Click "Copy to Clipboard" to paste into proposals
+- **PDF** (`.pdf`)
+- **Word Documents** (`.docx`)
+- **Text Files** (`.txt`)
+- **Markdown** (`.md`)
 
-### For Sales Ops
+**File size limit:** 100MB per file
 
-**Adding new case studies:**
-```bash
-# 1. Drop new PDFs/DOCX into case-studies/ folder
-# 2. Re-run ingestion
-./ingest.sh
-# Or: make ingest
-```
+---
 
-**Health check:**
-```bash
-./check.sh
-# Or: make check
-# Or: curl http://localhost:8000/health
-```
+## Privacy & Security
 
-## Available Commands
+- ✅ All data stays private using your Gemini API key
+- ✅ Your documents are only accessible through your API key
+- ✅ No data is used for public training
+- ✅ Can be run entirely on your own server or computer
 
-### Root-Level Scripts
+---
 
-- `./start.sh` - Start all services (with validation and health checks)
-- `./stop.sh` - Stop all services
-- `./dev.sh` - Start in development mode with live logs
-- `./check.sh` - Check service status and health
-- `./ingest.sh` - Ingest case studies from case-studies/ folder
+## Technology Stack
 
-### Make Commands
+**Built with:**
+- **Backend**: Python (FastAPI) - handles queries and document processing
+- **Frontend**: React + TypeScript - modern web interface
+- **AI**: Google Gemini File Search - managed RAG (no vector DB needed)
+- **Deployment**: Docker - easy to run anywhere
 
-Run `make help` to see all available commands:
-
-- `make start` - Start all services
-- `make stop` - Stop all services
-- `make restart` - Restart all services
-- `make dev` - Start in development mode
-- `make check` - Check service status
-- `make logs` - View all service logs
-- `make logs-backend` - View backend logs only
-- `make logs-frontend` - View frontend logs only
-- `make ingest` - Ingest case studies
-- `make build` - Build Docker images
-- `make clean` - Clean up containers and volumes
+---
 
 ## Project Structure
 
 ```
 case-study-ai/
-├── backend/
-│   ├── app/
-│   │   ├── main.py              # FastAPI app + /api/query
-│   │   ├── ingestion.py         # CLI: python ingestion.py --folder docs/
-│   │   ├── gemini_client.py     # Client + store management
-│   │   ├── prompts.py           # Sales-optimized system prompt
-│   │   ├── citations.py         # Parse grounding_metadata
-│   │   └── models.py            # Pydantic schemas
-│   ├── requirements.txt
-│   └── Dockerfile
-├── frontend/
-│   ├── src/
-│   │   ├── App.tsx
-│   │   ├── components/Chat.tsx
-│   │   ├── components/Answer.tsx
-│   │   └── api.ts
-│   ├── package.json
-│   └── Dockerfile
-├── case-studies/                # Place your PDF/DOCX files here
-├── docker-compose.yml
-├── .env.example
-└── README.md
+├── backend/              # Python API server
+├── frontend/             # React web interface
+├── case-studies/         # Put your documents here
+├── docker-compose.yml    # Docker configuration
+├── .env                  # Your API key (create this)
+└── README.md            # This file
 ```
 
-## API Endpoints
-
-### `POST /api/query`
-
-Query case studies with natural language.
-
-**Request:**
-```json
-{
-  "question": "fintech SaaS with Stripe integration"
-}
-```
-
-**Response:**
-```json
-{
-  "answer": "**Relevant Projects**\n- Client: Fintech startup...",
-  "citations": [
-    {"file": "project-alpha.pdf", "chunk_id": "123", "page": 5}
-  ]
-}
-```
-
-### `GET /health`
-
-Health check with store information.
-
-**Response:**
-```json
-{
-  "status": "healthy",
-  "store_name": "projects/.../fileSearchStores/...",
-  "file_count": 42
-}
-```
-
-## Development
-
-### Backend (Local)
-
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-```
-
-### Frontend (Local Development)
-
-For development with hot reload:
-
-```bash
-cd frontend
-npm install
-npm run dev
-# Frontend will be available at http://localhost:5173
-```
-
-**Note:** The Docker frontend runs a production build with nginx. For development, run the frontend locally to get hot module replacement and faster iteration.
-
-### Running Ingestion Locally
-
-```bash
-cd backend
-source venv/bin/activate
-export GEMINI_API_KEY=your_key_here
-python app/ingestion.py --folder ../case-studies
-```
-
-## Configuration
-
-### Environment Variables
-
-- `GEMINI_API_KEY`: Your Gemini API key (required)
-- `FILE_SEARCH_STORE_NAME`: Display name for the File Search store (default: "case-study-store")
-- `VITE_API_URL`: Backend API URL for frontend (default: "http://localhost:8000")
-
-### Supported File Formats
-
-The ingestion script supports these common case study formats:
-- PDF (`.pdf`)
-- Word documents (`.docx`)
-- Text files (`.txt`)
-- Markdown (`.md`)
-
-**Note:** Gemini File Search supports many more file types (see [official docs](https://ai.google.dev/gemini-api/docs/file-search#supported-file-types)). You can extend the `supported` set in `ingestion.py` to include additional formats.
-
-**File size limit:** 100MB per file (Gemini File Search limit)
-
-## Troubleshooting
-
-### API Key Issues
-
-**Error: "Service unavailable: Gemini API key not configured"**
-
-- Ensure `.env` file exists in the project root
-- Verify `GEMINI_API_KEY` is set correctly in `.env`
-- Check that Docker Compose is reading the `.env` file:
-  ```bash
-  docker compose exec backend env | grep GEMINI_API_KEY
-  ```
-- Restart services after updating `.env`:
-  ```bash
-  docker compose restart backend
-  ```
-
-**Note:** The project uses `google-genai==1.56.0` which requires a valid API key with File Search access.
-
-### Ingestion fails
-
-- Check that `GEMINI_API_KEY` is set correctly
-- Verify files are in supported formats
-- Check file sizes (must be < 100MB)
-- Ensure you're using the latest library version (1.56.0+)
-
-### No results from queries
-
-- Ensure ingestion completed successfully
-- Check `/health` endpoint for file count
-- Verify store name matches in `.env`
-- Check backend logs: `docker compose logs backend`
-
-### Frontend can't connect to backend
-
-- Ensure backend is running: `docker compose ps`
-- Check `VITE_API_URL` matches your backend URL (default: `http://localhost:8000`)
-- Check browser console for CORS errors
-- Verify backend health: `curl http://localhost:8000/health`
-
-## Technology Stack
-
-**Backend:**
-- FastAPI 0.115.0
-- Python 3.11
-- Google GenAI SDK 1.56.0 (latest)
-- Uvicorn (ASGI server)
-
-**Frontend:**
-- React 18.3.1
-- TypeScript 5.5.4
-- Vite 5.4.2
-- Tailwind CSS 3.4.13
-- Production: nginx (Docker)
-
-**Infrastructure:**
-- Docker & Docker Compose
-- Multi-stage builds for optimized images
-- Health checks and automatic restarts
-
-## Cost Optimization
-
-- **Free storage/query embeddings** - Pay only initial indexing ($0.15/1M tokens) + normal Gemini tokens
-- **No vector DB costs** - File Search handles everything
-- **Efficient chunking** - 300 tokens per chunk with 30 token overlap (optimized for case studies)
-- **Model**: Uses `gemini-2.5-flash` for fast, cost-effective responses
-
-## Security & Privacy
-
-- All data stays private using your Gemini API key
-- File Search stores are private to your API key
-- No data used for public training
-- Can be run entirely on-premises or private cloud
-
-## Next Steps (Post-MVP)
-
-- [ ] Metadata filtering by industry/client-type
-- [ ] Multi-store support for different document sets
-- [ ] Slack integration for team queries
-- [ ] Advanced analytics and usage tracking
-- [ ] Proposal template generation
-- [ ] User authentication and access control
-
-## License
-
-Internal use only.
-
-## Code Quality
-
-This project maintains a **100/100 quality score** with zero errors or warnings.
-
-**Backend Quality:**
-- Linting: Ruff (Python)
-- Formatting: Black
-- Type Checking: MyPy
-- All checks pass with zero errors
-
-**Frontend Quality:**
-- Linting: ESLint (TypeScript/React)
-- Formatting: Prettier
-- Type Checking: TypeScript (strict mode)
-- All checks pass with zero errors
-
-**Quick quality check:**
-```bash
-# Backend
-cd backend
-make check
-
-# Frontend
-cd frontend
-npm run check
-```
+---
 
 ## Support
 
-For issues or questions, check the logs:
-```bash
-# All services
-docker compose logs
-
-# Specific service
-docker compose logs backend
-docker compose logs frontend
-
-# Follow logs in real-time
-docker compose logs -f backend
-```
-
-**Quick Status Check:**
+**Check service status:**
 ```bash
 ./check.sh
-# Or: make check
-# Or: curl http://localhost:8000/health
 ```
 
-## Recent Updates
+**View logs:**
+```bash
+docker compose logs          # All services
+docker compose logs backend  # Backend only
+docker compose logs frontend # Frontend only
+```
 
-- ✅ Updated `google-genai` library to 1.56.0 (latest version with full File Search support)
-- ✅ Frontend production build with nginx for optimal performance
-- ✅ Multi-stage Docker builds for smaller image sizes
-- ✅ Comprehensive error handling and logging
-- ✅ Health checks and automatic service recovery
-- ✅ Zero linting/formatting errors (100/100 quality score)
-- ✅ TypeScript strict mode enabled
-- ✅ Production-ready deployment configuration
+**Restart services:**
+```bash
+./stop.sh
+./start.sh
+```
 
+---
+
+## Advanced Usage
+
+### Using Make Commands
+
+If you prefer Make commands:
+
+```bash
+make start    # Start services
+make stop     # Stop services
+make check    # Check status
+make ingest   # Ingest documents
+make logs     # View logs
+make help     # See all commands
+```
+
+### Development Mode
+
+For development with live logs:
+
+```bash
+./dev.sh
+```
+
+### Manual Docker Commands
+
+If you prefer using Docker directly:
+
+```bash
+# Start
+docker compose up -d
+
+# Stop
+docker compose down
+
+# View logs
+docker compose logs -f
+
+# Rebuild
+docker compose up -d --build
+```
+
+---
+
+## Cost Information
+
+- **Free storage/query embeddings** - Gemini File Search handles this
+- **Pay only for**: Initial document indexing ($0.15 per 1M tokens) + normal Gemini API usage
+- **No vector database costs** - everything is managed by Gemini
+- **Model used**: `gemini-2.5-flash` - fast and cost-effective
+
+---
+
+## What's Included
+
+✅ **Working MVP** - Fully functional application  
+✅ **Ingestion script** - Upload and index your documents  
+✅ **Web interface** - Search, view answers, copy to clipboard  
+✅ **Citations** - See source documents for every answer  
+✅ **Docker setup** - Easy to run locally or on a server  
+✅ **Full source code** - Everything is included  
+✅ **Setup instructions** - This README  
+
+---
+
+## Next Steps
+
+After getting started, you can:
+
+1. **Add more documents** - Just drop them in `case-studies/` and run `./ingest.sh`
+2. **Customize the prompts** - Edit `backend/app/prompts.py` to change answer format
+3. **Deploy to a server** - Use the same Docker setup on any server
+4. **Expand features** - The codebase is well-structured for adding features
+
+---
+
+**Built by [Monarch Labs Inc.](https://monarch-labs.com)**
