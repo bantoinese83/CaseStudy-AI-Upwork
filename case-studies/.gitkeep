@@ -1,0 +1,3 @@
+# Place your case study documents (PDF, DOCX, TXT, MD) in this folder
+# Then run: docker compose run backend python /app/ingestion.py --folder /app/case-studies
+

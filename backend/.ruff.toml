@@ -1,0 +1,3 @@
+# Ruff configuration (legacy support)
+line-length = 100
+
